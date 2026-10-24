@@ -94,3 +94,19 @@
 1. 选题与竞品分析、MCP 能力梳理均由 WorkBuddy 通过对话完成；
 2. Skill 的调用流程、安全边界、提示词均在此对话中设计并落地；
 3. 参赛文件的撰写、结构编排、合规自查由 WorkBuddy 协助完成并输出为可提交文档。
+
+---
+
+## 第 6 轮 · 真实 MCP 联调（提交前验证）
+
+**我的诉求：**
+> 提交前用真实 Token 做一次只读联调，确认项目依赖的接口、工具名、字段名都真实存在，避免文档与接口不符。
+
+**WorkBuddy 执行与结论（真实调用记录）：**
+
+- `initialize` 握手成功，服务端 `mcd-mcp v1.0.0`，协议版本 `2025-03-26`
+- `tools/list` 实际返回 **36 个工具**，比官方 README 多出 `query-promotions`、`query-survey-coupon`
+- `query-my-account` 成功返回，确认真实字段：`availablePoint`（可用）、`accumulativePoint`（累计）、`currentMouthExpirePoint`（本月将过期，注意官方拼写为 Mouth）、`nextMouthExpirePoint`、`frozenPoint` 等
+- `query-my-coupons` 成功返回，确认返回的是**结构化文本而非 JSON**，有效期格式为 `2026-10-24 00:00-2026-11-22 23:59`
+
+上述结论已回写进 `MCP_INTEGRATION.md` 第 2.1 节与 `README.md` 的「联调状态」，保证文档描述与真实接口完全一致。
