@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>麦麦账户体检卡生成器 · McExpiryGuard</title>
+<style>
+  :root{
+    --mcd-red:#DA291C; --mcd-yellow:#FFC72C; --mcd-dark:#2b2b2b;
+    --ink:#333; --muted:#888; --line:#eee; --bg:#f5f6f8; --card:#fff;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    background:var(--bg); color:var(--ink); padding:28px;
+  }
+  h1{font-size:22px; margin-bottom:4px;}
+  .sub{color:var(--muted); font-size:13px; margin-bottom:20px;}
+  .wrap{display:flex; gap:24px; align-items:flex-start; flex-wrap:wrap;}
+
+  /* 输入面板 */
+  .panel{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:20px; width:400px; max-width:100%;}
+  .panel h2{font-size:15px; margin-bottom:14px;}
+  .field{margin-bottom:12px;}
+  .field label{display:block; font-size:12px; color:var(--muted); margin-bottom:4px;}
+  .field input{width:100%; padding:8px 10px; border:1px solid #ddd; border-radius:8px; font-size:13px;}
+  .row{display:flex; gap:10px;}
+  .row .field{flex:1;}
+  .divider{height:1px; background:var(--line); margin:16px 0;}
+  .coupon-item,.tip-item{display:flex; gap:8px; margin-bottom:8px; align-items:center;}
+  .coupon-item input,.tip-item input{flex:1; padding:8px 10px; border:1px solid #ddd; border-radius:8px; font-size:13px;}
+  .coupon-item .days{width:70px; flex:none;}
+  .tip-item .save{width:90px; flex:none;}
+  .del{background:none; border:none; color:var(--mcd-red); cursor:pointer; font-size:16px; padding:4px;}
+  .btn{
+    display:inline-block; padding:9px 14px; border:none; border-radius:9px; cursor:pointer;
+    font-size:13px; font-weight:600; margin-right:8px; margin-top:4px;
+  }
+  .btn.primary{background:var(--mcd-red); color:#fff;}
+  .btn.ghost{background:#fff; color:var(--ink); border:1px solid #ddd;}
+  .btn.yellow{background:var(--mcd-yellow); color:var(--mcd-dark);}
+  .btnrow{margin-top:14px;}
+
+  /* 预览卡片 */
+  .stage{flex:1; min-width:360px; display:flex; justify-content:center;}
+  .card{
+    width:400px; background:var(--card); border-radius:18px; overflow:hidden;
+    box-shadow:0 8px 30px rgba(0,0,0,.10); border:1px solid var(--line);
+  }
+  .card-head{background:linear-gradient(135deg,#DA291C,#b81c12); color:#fff; padding:22px 24px;}
+  .card-head .brand{font-size:12px; letter-spacing:2px; opacity:.85;}
+  .card-head .title{font-size:22px; font-weight:700; margin-top:6px;}
+  .card-head .date{font-size:12px; margin-top:6px; opacity:.85;}
+  .card-body{padding:20px 24px;}
+  .sec-title{font-size:13px; font-weight:700; color:var(--mcd-red); margin:14px 0 10px; display:flex; align-items:center; gap:6px;}
+  .sec-title::before{content:""; width:4px; height:14px; background:var(--mcd-red); border-radius:2px;}
+
+  .points-flex{display:flex; align-items:center; gap:16px;}
+  .ring{position:relative; width:96px; height:96px; flex:none;}
+  .ring svg{transform:rotate(-90deg);}
+  .ring .ring-label{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:11px; color:var(--muted);}
+  .ring .ring-label b{font-size:20px; color:var(--ink);}
+  .points-list{flex:1; font-size:13px; line-height:1.9;}
+  .points-list .warn{color:var(--mcd-red); font-weight:600;}
+
+  .exp-row{display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px dashed var(--line);}
+  .exp-row:last-child{border-bottom:none;}
+  .badge{flex:none; font-size:11px; font-weight:700; padding:3px 8px; border-radius:20px; color:#fff;}
+  .badge.red{background:#e5484d;} .badge.orange{background:#f5a623;} .badge.yellow{background:#e6b800;} .badge.gray{background:#b6b6b6;}
+  .exp-name{flex:1; font-size:13px;}
+  .exp-days{flex:none; font-size:12px; color:var(--muted);}
+
+  .tip{border:1px solid var(--line); border-left:4px solid var(--mcd-yellow); border-radius:8px; padding:10px 12px; margin-bottom:8px; font-size:13px; line-height:1.5;}
+  .tip .save{color:var(--mcd-red); font-weight:700; margin-left:6px; white-space:nowrap;}
+
+  .card-foot{background:#fafafa; border-top:1px solid var(--line); padding:12px 24px; font-size:11px; color:var(--muted); line-height:1.6;}
+
+  .hint{font-size:12px; color:var(--muted); margin-top:8px;}
+  @media print{ .panel,.btnrow,.hint{display:none!important;} body{background:#fff;padding:0;} .card{box-shadow:none;} }
+</style>
+</head>
+<body>
+  <h1>麦麦账户体检卡生成器</h1>
+  <div class="sub">McExpiryGuard · 纯前端 / 零依赖 / 可离线 · 输入数据后右侧实时生成可分享体检卡</div>
+
+  <div class="wrap">
+    <!-- 输入面板 -->
+    <div class="panel">
+      <h2>体检数据</h2>
+      <div class="field"><label>体检日期</label><input id="in_date" value="2026-10-24"></div>
+      <div class="row">
+        <div class="field"><label>可用积分</label><input id="in_avail" type="number" value="1280"></div>
+        <div class="field"><label>即将过期积分</label><input id="in_expiring" type="number" value="200"></div>
+      </div>
+      <div class="row">
+        <div class="field"><label>过期积分剩余天数</label><input id="in_expiring_days" type="number" value="6"></div>
+        <div class="field"><label>冻结积分</label><input id="in_frozen" type="number" value="0"></div>
+      </div>
+
+      <div class="divider"></div>
+      <h2>优惠券（名称 + 剩余天数）</h2>
+      <div id="coupons"></div>
+      <button class="btn ghost" onclick="addCoupon()">+ 添加券</button>
+
+      <div class="divider"></div>
+      <h2>聪明花建议（文案 + 节省）</h2>
+      <div id="tips"></div>
+      <button class="btn ghost" onclick="addTip()">+ 添加建议</button>
+
+      <div class="btnrow">
+        <button class="btn primary" onclick="renderCard()">刷新预览</button>
+        <button class="btn yellow" onclick="exportPNG()">导出 PNG</button>
+      </div>
+      <div class="btnrow">
+        <button class="btn ghost" onclick="loadSample()">填入示例</button>
+        <button class="btn ghost" onclick="window.print()">打印 / 存 PDF</button>
+      </div>
+      <div class="hint">提示：导出 PNG 后即可发朋友圈 / 群聊，附上一句「你有没有积分券默默过期过？」</div>
+    </div>
+
+    <!-- 预览 -->
+    <div class="stage">
+      <div class="card" id="card"></div>
+    </div>
+  </div>
+
+<script>
+  function $(id){return document.getElementById(id);}
+
+  function couponRow(c){
+    const d=document.createElement('div'); d.className='coupon-item';
+    d.innerHTML = '<input class="cname" placeholder="券名称" value="'+esc(c?.name||'')+'">'+
+                  '<input class="days" type="number" placeholder="剩余天数" value="'+ (c?c.daysLeft:0) +'">'+
+                  '<button class="del" onclick="this.parentNode.remove()">×</button>';
+    return d;
+  }
+  function tipRow(t){
+    const d=document.createElement('div'); d.className='tip-item';
+    d.innerHTML = '<input class="ttext" placeholder="建议文案" value="'+esc(t?.text||'')+'">'+
+                  '<input class="save" placeholder="节省" value="'+esc(t?.save||'')+'">'+
+                  '<button class="del" onclick="this.parentNode.remove()">×</button>';
+    return d;
+  }
+  function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');}
+
+  function addCoupon(c){$('coupons').appendChild(couponRow(c));}
+  function addTip(t){$('tips').appendChild(tipRow(t));}
+
+  function loadSample(){
+    $('in_date').value='2026-10-24';
+    $('in_avail').value=1280; $('in_expiring').value=200; $('in_expiring_days').value=6; $('in_frozen').value=0;
+    $('coupons').innerHTML=''; $('tips').innerHTML='';
+    addCoupon({name:'麦辣鸡腿堡 5 折券', daysLeft:3});
+    addCoupon({name:'任意早餐套餐立减 3 元', daysLeft:0});
+    addCoupon({name:'中杯拿铁买一送一', daysLeft:6});
+    addCoupon({name:'麦乐鸡 5 元券', daysLeft:22});
+    addTip({text:'今天用「早餐立减3元」券买早餐，实付 6.9 元（原价 9.9）', save:'省 3.0 元'});
+    addTip({text:'用 200 即将过期积分兑换「中杯咖啡券」，避免清零', save:'救回 200 分'});
+    addTip({text:'3 天内用掉「5 折券」，比直接买省 9.5 元', save:'省 9.5 元'});
+    renderCard();
+  }
+
+  function badgeFor(days){
+    if(days<=0) return '<span class="badge red">今天到期</span>';
+    if(days<=3) return '<span class="badge orange">还剩 '+days+' 天</span>';
+    if(days<=7) return '<span class="badge yellow">还剩 '+days+' 天</span>';
+    return '<span class="badge gray">还剩 '+days+' 天</span>';
+  }
+
+  function collect(){
+    const coupons=[], tips=[];
+    document.querySelectorAll('#coupons .coupon-item').forEach(el=>{
+      const n=el.querySelector('.cname').value.trim();
+      if(n) coupons.push({name:n, daysLeft:parseInt(el.querySelector('.days').value)||0});
+    });
+    document.querySelectorAll('#tips .tip-item').forEach(el=>{
+      const t=el.querySelector('.ttext').value.trim();
+      if(t) tips.push({text:t, save:el.querySelector('.save').value.trim()});
+    });
+    return {
+      date:$('in_date').value,
+      points:{
+        available:parseInt($('in_avail').value)||0,
+        expiring:parseInt($('in_expiring').value)||0,
+        expiringInDays:parseInt($('in_expiring_days').value)||0,
+        frozen:parseInt($('in_frozen').value)||0
+      },
+      coupons, tips
+    };
+  }
+
+  function ringSVG(avail, expiring){
+    const total=Math.max(avail,1), r=40, c=2*Math.PI*r;
+    const frac=Math.min(expiring/avail,1);
+    const gap=Math.max(0,avail-expiring)/total;
+    return '<svg width="96" height="96" viewBox="0 0 96 96">'+
+      '<circle cx="48" cy="48" r="'+r+'" fill="none" stroke="#eee" stroke-width="10"/>'+
+      '<circle cx="48" cy="48" r="'+r+'" fill="none" stroke="#FFC72C" stroke-width="10" stroke-dasharray="'+ (c*frac) +' '+ (c*(1-frac)) +'" stroke-linecap="round"/>'+
+      '<circle cx="48" cy="48" r="'+r+'" fill="none" stroke="#DA291C" stroke-width="10" stroke-dasharray="'+ (c*gap) +' '+ (c*(1-gap)) +'" stroke-linecap="round" transform="rotate('+ (frac*360) +' 48 48)"/>'+
+      '</svg>';
+  }
+
+  function renderCard(){
+    const s=collect();
+    const p=s.points;
+    const expiredCnt=s.coupons.filter(c=>c.daysLeft<=7).length;
+    const html=
+      '<div class="card-head">'+
+        '<div class="brand">McExpiryGuard · 麦当劳 MCP</div>'+
+        '<div class="title">麦麦账户体检报告</div>'+
+        '<div class="date">体检日期：'+esc(s.date)+'</div>'+
+      '</div>'+
+      '<div class="card-body">'+
+        '<div class="sec-title">账户概况</div>'+
+        '<div class="points-flex">'+
+          '<div class="ring">'+ringSVG(p.available,p.expiring)+
+            '<div class="ring-label"><b>'+p.available+'</b><span>可用积分</span></div>'+
+          '</div>'+
+          '<div class="points-list">'+
+            '<div>累计可用：<b>'+p.available+'</b> 分</div>'+
+            (p.expiring>0?'<div class="warn">即将过期：'+p.expiring+' 分（'+p.expiringInDays+' 天后）</div>':'<div>无即将过期积分 ✓</div>')+
+            '<div>冻结积分：'+p.frozen+' 分</div>'+
+          '</div>'+
+        '</div>'+
+        '<div class="sec-title">优惠券过期预警（'+(expiredCnt>0?'有 '+expiredCnt+' 项需关注':'暂无')+'）</div>'+
+        s.coupons.map(c=>
+          '<div class="exp-row">'+badgeFor(c.daysLeft)+'<span class="exp-name">'+esc(c.name)+'</span>'+
+          (c.daysLeft>0?'<span class="exp-days">'+c.daysLeft+' 天后过期</span>':'<span class="exp-days">今天截止</span>')+
+          '</div>'
+        ).join('') +
+        (s.coupons.length? '' : '<div style="color:#999;font-size:12px;">暂无优惠券</div>')+
+        '<div class="sec-title">聪明花建议</div>'+
+        (s.tips.length? s.tips.map(t=>'<div class="tip">'+esc(t.text)+'<span class="save">'+esc(t.save)+'</span></div>').join('') : '<div style="color:#999;font-size:12px;">暂无建议</div>')+
+      '</div>'+
+      '<div class="card-foot">本报告由「麦麦防过期管家」基于麦当劳 MCP 账户数据生成，仅供参考；餐品信息、价格与供应状态以麦当劳官方渠道实时结果为准。</div>';
+    $('card').innerHTML=html;
+  }
+
+  function exportPNG(){
+    const s=collect();
+    const W=800, H=940, pad=48, cardW=W-pad*2;
+    const cv=document.createElement('canvas'); cv.width=W; cv.height=H;
+    const ctx=cv.getContext('2d');
+    let y=0;
+
+    // 背景
+    ctx.fillStyle='#f5f6f8'; ctx.fillRect(0,0,W,H);
+    // 圆角卡片
+    roundRect(ctx, pad, pad, cardW, H-pad*2, 24, '#ffffff'); ctx.fill();
+    // 头部
+    const headH=150;
+    const grad=ctx.createLinearGradient(pad,pad,pad+cardW,pad);
+    grad.addColorStop(0,'#DA291C'); grad.addColorStop(1,'#b81c12');
+    roundRectTop(ctx, pad, pad, cardW, headH, 24, grad); ctx.fill();
+    ctx.fillStyle='#ffffff';
+    ctx.font='600 15px "PingFang SC","Microsoft YaHei",sans-serif'; ctx.textAlign='left';
+    ctx.globalAlpha=.9; ctx.fillText('McExpiryGuard · 麦当劳 MCP', pad+40, pad+48);
+    ctx.globalAlpha=1;
+    ctx.font='700 30px "PingFang SC","Microsoft YaHei",sans-serif';
+    ctx.fillText('麦麦账户体检报告', pad+40, pad+92);
+    ctx.font='400 15px "PingFang SC","Microsoft YaHei",sans-serif';
+    ctx.globalAlpha=.9; ctx.fillText('体检日期：'+s.date, pad+40, pad+126);
+    ctx.globalAlpha=1;
+
+    y=pad+headH+36;
+    // 账户概况
+    ctx.fillStyle='#DA291C'; ctx.fillRect(pad+40, y-14, 4, 16);
+    ctx.font='700 18px "PingFang SC","Microsoft YaHei",sans-serif'; ctx.fillStyle='#DA291C';
+    ctx.fillText('账户概况', pad+56, y);
+    y+=28;
+    // 环
+    const cx=pad+40+48, cy=y+48, r=48, total=Math.max(s.points.available,1);
+    const frac=Math.min(s.points.expiring/total,1);
+    ctx.lineWidth=12; ctx.strokeStyle='#eeeeee'; ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.stroke();
+    ctx.strokeStyle='#FFC72C'; ctx.beginPath(); ctx.arc(cx,cy,r,-Math.PI/2, -Math.PI/2+Math.PI*2*frac); ctx.stroke();
+    ctx.strokeStyle='#DA291C'; ctx.beginPath(); ctx.arc(cx,cy,r,-Math.PI/2+Math.PI*2*frac, Math.PI*1.5); ctx.stroke();
+    ctx.fillStyle='#2b2b2b'; ctx.font='700 26px "PingFang SC","Microsoft YaHei",sans-serif'; ctx.textAlign='center';
+    ctx.fillText(String(s.points.available), cx, cy+2);
+    ctx.font='400 12px "PingFang SC","Microsoft YaHei",sans-serif'; ctx.fillStyle='#888';
+    ctx.fillText('可用积分', cx, cy+24);
+    ctx.textAlign='left';
+    const lx=cx+r+30;
+    ctx.font='400 17px "PingFang SC","Microsoft YaHei",sans-serif'; ctx.fillStyle='#333';
+    ctx.fillText('累计可用：'+s.points.available+' 分', lx, cy-22);
+    if(s.points.expiring>0){ctx.fillStyle='#DA291C'; ctx.fillText('即将过期：'+s.points.expiring+' 分（'+s.points.expiringInDays+' 天后）', lx, cy+4);}
+    else {ctx.fillStyle='#333'; ctx.fillText('无即将过期积分 ✓', lx, cy+4);}
+    ctx.fillStyle='#333'; ctx.fillText('冻结积分：'+s.points.frozen+' 分', lx, cy+30);
+
+    y=cy+r+40;
+    // 预警
+    const expiredCnt=s.coupons.filter(c=>c.daysLeft<=7).length;
+    ctx.fillStyle='#DA291C'; ctx.fillRect(pad+40, y-14, 4, 16);
+    ctx.font='700 18px "PingFang SC","Microsoft YaHei",sans-serif'; ctx.fillStyle='#DA291C';
+    ctx.fillText('优惠券过期预警（'+(expiredCnt>0?'有 '+expiredCnt+' 项需关注':'暂无')+'）', pad+56, y);
+    y+=20;
+    s.coupons.forEach(c=>{
+      const bc = c.daysLeft<=0 ? '#e5484d' : c.daysLeft<=3 ? '#f5a623' : c.daysLeft<=7 ? '#e6b800' : '#b6b6b6';
+      const bl = c.daysLeft<=0 ? '今天到期' : '还剩 '+c.daysLeft+' 天';
+      const bw = ctx.measureText(bl).width + 20;
+      // 行背景
+      roundRect(ctx, pad+40, y, cardW-80, 46, 10, '#fafafa'); ctx.fill();
+      // badge
+      roundRect(ctx, pad+56, y+11, bw, 24, 12, bc); ctx.fill();
+      ctx.fillStyle='#fff'; ctx.font='700 13px "PingFang SC","Microsoft YaHei",sans-serif';
+      ctx.fillText(bl, pad+66, y+28);
+      // 名称
+      ctx.fillStyle='#333'; ctx.font='400 16px "PingFang SC","Microsoft YaHei",sans-serif';
+      ctx.fillText(c.name, pad+56+bw+16, y+29);
+      // 右侧天数
+      ctx.fillStyle='#999'; ctx.font='400 13px "PingFang SC","Microsoft YaHei",sans-serif'; ctx.textAlign='right';
+      ctx.fillText(c.daysLeft>0 ? c.daysLeft+' 天后过期' : '今天截止', pad+cardW-56, y+29);
+      ctx.textAlign='left';
+      y+=54;
+    });
+    y+=14;
+    // 建议
+    ctx.fillStyle='#DA291C'; ctx.fillRect(pad+40, y-14, 4, 16);
+    ctx.font='700 18px "PingFang SC","Microsoft YaHei",sans-serif'; ctx.fillStyle='#DA291C';
+    ctx.fillText('聪明花建议', pad+56, y);
+    y+=20;
+    s.tips.forEach(t=>{
+      ctx.font='400 16px "PingFang SC","Microsoft YaHei",sans-serif';
+      const line=wrapText(ctx, t.text, cardW-160);
+      const th=line.length*26+20;
+      roundRect(ctx, pad+40, y, cardW-80, th, 10, '#fff8e6'); ctx.fill();
+      ctx.strokeStyle='#FFC72C'; ctx.lineWidth=4; ctx.beginPath();
+      ctx.moveTo(pad+42, y+4); ctx.lineTo(pad+42, y+th-4); ctx.stroke();
+      ctx.fillStyle='#333'; ctx.textAlign='left';
+      let ty=y+30;
+      line.forEach(ln=>{ctx.fillText(ln, pad+58, ty); ty+=26;});
+      ctx.fillStyle='#DA291C'; ctx.font='700 15px "PingFang SC","Microsoft YaHei",sans-serif';
+      ctx.textAlign='right';
+      ctx.fillText(t.save, pad+cardW-56, y+th/2+5);
+      ctx.textAlign='left';
+      y+=th+12;
+    });
+    // 底部说明
+    const foot='本报告由「麦麦防过期管家」基于麦当劳 MCP 账户数据生成，仅供参考；餐品信息、价格与供应状态以麦当劳官方渠道实时结果为准。';
+    const fl=wrapText(ctx, foot, cardW-160);
+    let fy=H-pad-14-(fl.length-1)*18;
+    ctx.fillStyle='#999'; ctx.font='400 12px "PingFang SC","Microsoft YaHei",sans-serif'; ctx.textAlign='center';
+    fl.forEach(ln=>{ctx.fillText(ln, pad+cardW/2, fy); fy+=18;});
+    ctx.textAlign='left';
+
+    const a=document.createElement('a');
+    a.download='麦麦账户体检卡.png';
+    a.href=cv.toDataURL('image/png');
+    a.click();
+  }
+
+  function wrapText(ctx, text, maxW){
+    const words=Array.from(text); const lines=[]; let line='';
+    for(const ch of words){
+      if(ctx.measureText(line+ch).width>maxW && line){ lines.push(line); line=ch; }
+      else line+=ch;
+    }
+    if(line) lines.push(line);
+    return lines;
+  }
+  function roundRect(ctx,x,y,w,h,r,color){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); ctx.fillStyle=color; }
+  function roundRectTop(ctx,x,y,w,h,r,color){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,0); ctx.lineTo(x,y+h); ctx.lineTo(x,y+r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); ctx.fillStyle=color; }
+
+  // 初始化
+  loadSample();
+</script>
+</body>
+</html>
