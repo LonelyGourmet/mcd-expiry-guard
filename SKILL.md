@@ -22,8 +22,8 @@ description: 麦麦防过期管家。帮用户管理麦当劳账户里「即将�
 
 ### 场景 A：账户体检（默认入口）
 
-1. `query-my-account` → 拿到 可用积分 / 累计积分 / 冻结积分 / 即将过期积分。
-2. `query-my-coupons` → 拿到券列表及每张券的有效期。
+1. `query-my-account` → 取字段：`availablePoint`（可用）/ `accumulativePoint`（累计）/ `frozenPoint`（冻结）/ `currentMouthExpirePoint`（本月将过期，**核心**）/ `nextMouthExpirePoint`（下月将过期）。接口拼写是 `Mouth` 不是 `Month`，务必按原样取。
+2. `query-my-coupons` → 返回结构化文本，逐张解析「优惠 / 有效期 / 标签」；有效期形如 `2026-10-24 00:00-2026-11-22 23:59`，取 `-` 后右段为到期时间。
 3. `now-time-info` → 获取当前日期，计算每项「距离过期天数」。
 4. 分级：
    - 🔴 今天到期 / 已过期

@@ -83,6 +83,10 @@ mcd-expiry-guard/
     └── index.html            # 账户体检报告卡生成器（纯前端、零依赖、可离线）
 ```
 
+## 联调状态
+
+已在真实环境完成 MCP 联调：`initialize` 握手成功、`tools/list` 返回 36 个工具、`query-my-account` 与 `query-my-coupons` 均成功取回真实账户数据（字段与解析方式见 `MCP_INTEGRATION.md` 第 2.1 节）。
+
 ## 合规与安全
 
 - 本项目**默认只使用只读接口**；涉及副作用的操作（`auto-bind-coupons` 一键领券、`create-order` 下单）均要求用户显式确认后才执行。

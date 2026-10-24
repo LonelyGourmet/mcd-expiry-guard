@@ -26,6 +26,26 @@
 | `calculate-price` | 按商品列表（含优惠券）计算金额 | 「聪明花」方案的实付价测算 | ✅ 只读 |
 | `auto-bind-coupons` | 一键领取全部可领优惠券 | 「一键领券」执行动作 | ⚠️ 有副作用，需用户显式确认 |
 
+### 2.1 接口实测字段（2026-10-24 真实联调）
+
+`query-my-account` 返回的积分账户字段。**注意：官方字段拼写为 `Mouth`，不是 `Month`，取值时必须按原样使用。**
+
+| 字段 | 含义 |
+| --- | --- |
+| `availablePoint` | 可用积分 |
+| `accumulativePoint` | 累计积分 |
+| `currentMouthExpirePoint` | **本月将过期积分**（本项目核心预警字段） |
+| `nextMouthExpirePoint` | 下月将过期积分 |
+| `lastMouthExpirePoint` | 上月已过期积分 |
+| `expiredPoint` | 已过期积分 |
+| `frozenPoint` | 冻结积分 |
+| `usedPoint` | 已使用积分 |
+| `accountId` / `currency` | 账户 ID / 货币类型（麦享会积分） |
+
+`query-my-coupons` 返回的是**结构化文本**（不是 JSON），每张券含「优惠 / 有效期 / 领取时间 / 标签」；有效期形如 `2026-10-24 00:00-2026-11-22 23:59`，需按 `-` 拆出右段作为到期时间。
+
+> 联调环境：MCP Server `mcd-mcp v1.0.0`，协议版本 `2025-03-26`；`tools/list` 实际返回 **36 个工具**，比公开 README 多出 `query-promotions`（促销查询）、`query-survey-coupon`（问卷券）。
+
 ## 3. 调用流程
 
 ### 流程 A：账户体检 + 过期预警（默认、纯只读）
